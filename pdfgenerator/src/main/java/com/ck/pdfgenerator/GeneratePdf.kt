@@ -2,7 +2,9 @@ package com.ck.pdfgenerator
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
+import android.util.Log
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
@@ -28,7 +30,7 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
         val headerView = createComposeView { pdfConfig.header() }
         val footerView = createComposeView { pdfConfig.footer() }
         val bodyView = createComposeView { pdfConfig.body() }
-
+        Log.d("GeneratePdfLibrary", "headerView: ${bodyView.height}")
         val parentLayout = createParentLayout(headerView, bodyView, footerView)
 
         addViewToWindow(parentLayout)
@@ -62,7 +64,7 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
                 setPadding(0, 0, 0, 0)
 
                 addView(headerView, createLayoutParams())
-                addView(bodyView, createLayoutParams(0, 1f))
+                addView(bodyView, createLayoutParams())
             })
 
             addView(footerView, FrameLayout.LayoutParams(
@@ -166,25 +168,21 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
             // Ensure body has non-zero dimensions before drawing
             if (bodyView.width > 0 && bodyView.height > 0) {
                 val bodyBitmap = bodyView.drawToBitmap()
-                canvas.drawBitmap(bodyBitmap, 0f, headerView.height.toFloat(), null)
+                val srcRect =
+                    Rect(
+                        0,
+                        (pageNumber - 1) * availableHeight,
+                        bodyBitmap.width,
+                        pageNumber * availableHeight
+                    )
+                val destRect =
+                    Rect(0, headerView.height, width, headerView.height + availableHeight)
+                canvas.drawBitmap(bodyBitmap, srcRect, destRect, null)
             }
 
             pdfDocument.finishPage(page)
             pageNumber++
             remainingHeight -= availableHeight
-
-            if (remainingHeight > 0) {
-                bodyView.setContent { pdfConfig.body() }
-                bodyView.viewTreeObserver.addOnGlobalLayoutListener(object :
-                    ViewTreeObserver.OnGlobalLayoutListener {
-                    override fun onGlobalLayout() {
-                        if (bodyView.height > 0) {
-                            bodyView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                            remainingHeight = bodyView.height
-                        }
-                    }
-                })
-            }
         }
     }
 
