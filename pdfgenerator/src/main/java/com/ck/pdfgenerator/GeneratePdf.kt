@@ -5,8 +5,8 @@ import android.content.Context
 import android.graphics.pdf.PdfDocument
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.widget.FrameLayout
 import android.widget.LinearLayout
-import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.drawToBitmap
@@ -25,9 +25,9 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
     fun generatePdf(pdfConfig: PdfConfig): CompletableFuture<String> {
         val future = CompletableFuture<String>()
 
-        val headerView = createComposeView { Box { pdfConfig.header() } }
-        val footerView = createComposeView { Box { pdfConfig.footer() } }
-        val bodyView = createComposeView { Box { pdfConfig.body() } }
+        val headerView = createComposeView { pdfConfig.header() }
+        val footerView = createComposeView { pdfConfig.footer() }
+        val bodyView = createComposeView { pdfConfig.body() }
 
         val parentLayout = createParentLayout(headerView, bodyView, footerView)
 
@@ -48,35 +48,53 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
         headerView: ComposeView,
         bodyView: ComposeView,
         footerView: ComposeView
-    ): LinearLayout {
-        return LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
+    ): FrameLayout {
+        return FrameLayout(context).apply {
             layoutParams = ViewGroup.LayoutParams(pageSize.first, pageSize.second)
             setPadding(0, 0, 0, 0)
 
-            addView(headerView, createLayoutParams())
-            addView(bodyView, createLayoutParams())
-            addView(footerView, createLayoutParams())
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+                setPadding(0, 0, 0, 0)
+
+                addView(headerView, createLayoutParams())
+                addView(bodyView, createLayoutParams(0, 1f))
+            })
+
+            addView(footerView, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.BOTTOM
+            })
         }
     }
 
-    private fun createLayoutParams(): LinearLayout.LayoutParams {
+    private fun createLayoutParams(
+        height: Int = ViewGroup.LayoutParams.WRAP_CONTENT,
+        weight: Float = 0f
+    ): LinearLayout.LayoutParams {
         return LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
+            height,
+            weight
         ).apply {
             setMargins(0, 0, 0, 0)
         }
     }
 
-    private fun addViewToWindow(parentLayout: LinearLayout) {
+    private fun addViewToWindow(parentLayout: FrameLayout) {
         (context as Activity).runOnUiThread {
             (context.window.decorView as ViewGroup).addView(parentLayout)
         }
     }
 
     private fun measureAndGeneratePdf(
-        parentLayout: LinearLayout,
+        parentLayout: FrameLayout,
         headerView: ComposeView,
         bodyView: ComposeView,
         footerView: ComposeView,
@@ -114,7 +132,7 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
     }
 
     private fun generatePdfPages(
-        parentLayout: LinearLayout,
+        parentLayout: FrameLayout,
         headerView: ComposeView,
         bodyView: ComposeView,
         footerView: ComposeView,
@@ -156,7 +174,7 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
             remainingHeight -= availableHeight
 
             if (remainingHeight > 0) {
-                bodyView.setContent { Box { pdfConfig.body() } }
+                bodyView.setContent { pdfConfig.body() }
                 bodyView.viewTreeObserver.addOnGlobalLayoutListener(object :
                     ViewTreeObserver.OnGlobalLayoutListener {
                     override fun onGlobalLayout() {
@@ -190,7 +208,7 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
         return file
     }
 
-    private fun removeViewFromWindow(parentLayout: LinearLayout) {
+    private fun removeViewFromWindow(parentLayout: FrameLayout) {
         (context as Activity).runOnUiThread {
             (context.window.decorView as ViewGroup).removeView(parentLayout)
         }
