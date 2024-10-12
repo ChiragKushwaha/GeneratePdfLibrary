@@ -14,7 +14,7 @@ data class Config(
 @Keep
 data class PdfConfig(
     val name: String,
-    val header: @Composable () -> Unit,
-    val footer: @Composable () -> Unit,
-    val body: @Composable () -> Unit,
+    val header: (@Composable () -> Unit),
+    val footer: (@Composable () -> Unit),
+    val body: (@Composable () -> Unit),
 )

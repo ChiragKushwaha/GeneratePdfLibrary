@@ -1,6 +1,15 @@
 package com.ck.pdfgenerator.utils.enums
 
-enum class PageSize(val widthPoints: Int, val heightPoints: Int, val widthInches: Double, val heightInches: Double, val widthMm: Int, val heightMm: Int) {
+import android.util.DisplayMetrics
+
+enum class PageSize(
+    val widthPoints: Int,
+    val heightPoints: Int,
+    val widthInches: Double,
+    val heightInches: Double,
+    val widthMm: Int,
+    val heightMm: Int
+) {
     // A Series (ISO 216)
     A0(2384, 3370, 33.1, 46.8, 841, 1189),
     A1(1684, 2384, 23.4, 33.1, 594, 841),
@@ -34,5 +43,12 @@ enum class PageSize(val widthPoints: Int, val heightPoints: Int, val widthInches
     // Convenience function to display sizes
     fun getDimensions(): String {
         return "Size: $name, Points: $widthPoints x $heightPoints, Inches: $widthInches x $heightInches, Mm: $widthMm x $heightMm"
+    }
+
+    // Function to convert points to pixels
+    fun toPixels(densityDpi: Int): Pair<Int, Int> {
+        val widthPixels = (widthPoints * densityDpi / DisplayMetrics.DENSITY_DEFAULT)
+        val heightPixels = (heightPoints * densityDpi / DisplayMetrics.DENSITY_DEFAULT)
+        return Pair(widthPixels, heightPixels)
     }
 }
