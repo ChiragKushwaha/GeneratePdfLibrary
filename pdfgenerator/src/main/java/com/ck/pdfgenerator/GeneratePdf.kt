@@ -6,6 +6,7 @@ import android.graphics.pdf.PdfDocument
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.LinearLayout
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.drawToBitmap
@@ -24,9 +25,9 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
     fun generatePdf(pdfConfig: PdfConfig): CompletableFuture<String> {
         val future = CompletableFuture<String>()
 
-        val headerView = createComposeView { pdfConfig.header() }
-        val footerView = createComposeView { pdfConfig.footer() }
-        val bodyView = createComposeView { pdfConfig.body() }
+        val headerView = createComposeView { Box { pdfConfig.header() } }
+        val footerView = createComposeView { Box { pdfConfig.footer() } }
+        val bodyView = createComposeView { Box { pdfConfig.body() } }
 
         val parentLayout = createParentLayout(headerView, bodyView, footerView)
 
@@ -122,36 +123,51 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
         width: Int,
         height: Int
     ) {
-        val bodyHeight = bodyView.height
-        val availableHeight = parentLayout.height - headerView.height - footerView.height
+        val availableHeight = height - headerView.height - footerView.height
 
         var pageNumber = 1
-        var remainingHeight = bodyHeight
+        var remainingHeight = bodyView.height
 
         while (remainingHeight > 0) {
-            createPage(pdfDocument, parentLayout, pageNumber, width, height)
+            val pageInfo = PdfDocument.PageInfo.Builder(width, height, pageNumber).create()
+            val page = pdfDocument.startPage(pageInfo)
+            val canvas = page.canvas
+
+            // Ensure header has non-zero dimensions before drawing
+            if (headerView.width > 0 && headerView.height > 0) {
+                val headerBitmap = headerView.drawToBitmap()
+                canvas.drawBitmap(headerBitmap, 0f, 0f, null)
+            }
+
+            // Ensure footer has non-zero dimensions before drawing
+            if (footerView.width > 0 && footerView.height > 0) {
+                val footerBitmap = footerView.drawToBitmap()
+                canvas.drawBitmap(footerBitmap, 0f, (height - footerView.height).toFloat(), null)
+            }
+
+            // Ensure body has non-zero dimensions before drawing
+            if (bodyView.width > 0 && bodyView.height > 0) {
+                val bodyBitmap = bodyView.drawToBitmap()
+                canvas.drawBitmap(bodyBitmap, 0f, headerView.height.toFloat(), null)
+            }
+
+            pdfDocument.finishPage(page)
             pageNumber++
             remainingHeight -= availableHeight
 
             if (remainingHeight > 0) {
-                bodyView.setContent { pdfConfig.body() }
+                bodyView.setContent { Box { pdfConfig.body() } }
+                bodyView.viewTreeObserver.addOnGlobalLayoutListener(object :
+                    ViewTreeObserver.OnGlobalLayoutListener {
+                    override fun onGlobalLayout() {
+                        if (bodyView.height > 0) {
+                            bodyView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                            remainingHeight = bodyView.height
+                        }
+                    }
+                })
             }
         }
-    }
-
-    private fun createPage(
-        pdfDocument: PdfDocument,
-        content: LinearLayout,
-        pageNumber: Int,
-        width: Int,
-        height: Int
-    ) {
-        val pageInfo = PdfDocument.PageInfo.Builder(width, height, pageNumber).create()
-        val page = pdfDocument.startPage(pageInfo)
-        val canvas = page.canvas
-        val bitmap = content.drawToBitmap()
-        canvas.drawBitmap(bitmap, 0f, 0f, null)
-        pdfDocument.finishPage(page)
     }
 
     private fun savePdfToFile(

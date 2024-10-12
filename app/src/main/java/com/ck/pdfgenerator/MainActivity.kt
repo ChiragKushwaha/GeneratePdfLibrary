@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color.Companion.Black
@@ -54,12 +55,15 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneratePdf(context: Context) {
-    val pdfFuture = GeneratePdfLibrary(
-        context, Config(
-            pageSize = PageSize.A4,
-            pageOrientation = PageOrientation.PORTRAIT
+    val pdf = remember {
+        GeneratePdfLibrary(
+            context, Config(
+                pageSize = PageSize.A4,
+                pageOrientation = PageOrientation.PORTRAIT
+            )
         )
-    ).generatePdf(PdfConfig(
+    }
+    val pdfFuture = pdf.generatePdf(PdfConfig(
         name = "HelloWorld",
         header = {
             Row(
@@ -103,6 +107,7 @@ fun GeneratePdf(context: Context) {
             )
         }
     ))
+
     pdfFuture.thenAccept { pdfPath ->
         d("PDF", "PDF Generated Successfully at: $pdfPath")
     }.exceptionally { throwable ->
