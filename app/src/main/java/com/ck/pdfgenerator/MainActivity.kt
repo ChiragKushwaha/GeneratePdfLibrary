@@ -20,7 +20,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ck.pdfgenerator.ui.theme.PdfGeneratorTheme
 import com.ck.pdfgenerator.utils.models.PdfConfig
@@ -214,10 +213,3 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PdfGeneratorTheme {
-        Greeting("Android")
-    }
-}
