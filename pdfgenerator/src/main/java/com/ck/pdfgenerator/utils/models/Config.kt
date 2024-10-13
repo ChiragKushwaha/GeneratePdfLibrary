@@ -2,19 +2,22 @@ package com.ck.pdfgenerator.utils.models
 
 import androidx.annotation.Keep
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import com.ck.pdfgenerator.utils.enums.PageOrientation
 import com.ck.pdfgenerator.utils.enums.PageSize
 
 @Keep
+@Stable
 data class Config(
-    val pageSize: PageSize = PageSize.A4,
-    val pageOrientation: PageOrientation = PageOrientation.PORTRAIT,
+    @Stable val pageSize: PageSize = PageSize.A4,
+    @Stable val pageOrientation: PageOrientation = PageOrientation.PORTRAIT,
 )
 
 @Keep
+@Stable
 data class PdfConfig(
-    val name: String,
-    val header: (@Composable () -> Unit),
-    val footer: (@Composable () -> Unit),
-    val body: (@Composable () -> Unit),
+    @Stable val name: String,
+    @Stable val header: (@Composable () -> Unit),
+    @Stable val footer: (@Composable () -> Unit),
+    @Stable val body: (@Composable () -> Unit),
 )

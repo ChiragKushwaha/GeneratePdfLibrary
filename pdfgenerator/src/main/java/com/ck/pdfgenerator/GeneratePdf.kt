@@ -4,8 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
-import android.util.Log
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -13,31 +14,46 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.drawToBitmap
 import com.ck.pdfgenerator.utils.enums.PageOrientation
+import com.ck.pdfgenerator.utils.enums.PageSize
 import com.ck.pdfgenerator.utils.models.Config
 import com.ck.pdfgenerator.utils.models.PdfConfig
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.util.concurrent.CompletableFuture
 
-class GeneratePdfLibrary(private val context: Context, private val config: Config) {
+val defaultConfig = Config(
+    pageSize = PageSize.A4,
+    pageOrientation = PageOrientation.PORTRAIT
+)
+
+class GeneratePdfLibrary(
+    private val context: Context, private val config: Config = defaultConfig
+) {
     private val dpi = context.resources.displayMetrics.densityDpi
     private val pageSize = config.pageSize.toPixels(dpi)
     private val pageOrientation = config.pageOrientation
 
-    fun generatePdf(pdfConfig: PdfConfig): CompletableFuture<String> {
-        val future = CompletableFuture<String>()
+    companion object {
+        @Volatile
+        private var instance: GeneratePdfLibrary? = null
 
+        fun getInstance(context: Context, config: Config = defaultConfig): GeneratePdfLibrary {
+            return instance ?: synchronized(this) {
+                instance ?: GeneratePdfLibrary(context, config).also { instance = it }
+            }
+        }
+    }
+
+    fun generatePdf(pdfConfig: PdfConfig) {
         val headerView = createComposeView { pdfConfig.header() }
         val footerView = createComposeView { pdfConfig.footer() }
         val bodyView = createComposeView { pdfConfig.body() }
-        Log.d("GeneratePdfLibrary", "headerView: ${bodyView.height}")
         val parentLayout = createParentLayout(headerView, bodyView, footerView)
 
         addViewToWindow(parentLayout)
 
-        measureAndGeneratePdf(parentLayout, headerView, bodyView, footerView, pdfConfig, future)
-
-        return future
+        measureAndGeneratePdf(
+            parentLayout, headerView, bodyView, footerView, pdfConfig,
+        )
     }
 
     private fun createComposeView(content: @Composable () -> Unit): ComposeView {
@@ -52,7 +68,7 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
         footerView: ComposeView
     ): FrameLayout {
         return FrameLayout(context).apply {
-            layoutParams = ViewGroup.LayoutParams(pageSize.first, pageSize.second)
+            layoutParams = ViewGroup.LayoutParams(pageSize.first, MATCH_PARENT)
             setPadding(0, 0, 0, 0)
 
             addView(LinearLayout(context).apply {
@@ -64,7 +80,7 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
                 setPadding(0, 0, 0, 0)
 
                 addView(headerView, createLayoutParams())
-                addView(bodyView, createLayoutParams())
+                addView(bodyView, createLayoutParams(WRAP_CONTENT, 1f))
             })
 
             addView(footerView, FrameLayout.LayoutParams(
@@ -81,7 +97,7 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
         weight: Float = 0f
     ): LinearLayout.LayoutParams {
         return LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
+            MATCH_PARENT,
             height,
             weight
         ).apply {
@@ -101,7 +117,6 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
         bodyView: ComposeView,
         footerView: ComposeView,
         pdfConfig: PdfConfig,
-        future: CompletableFuture<String>
     ) {
         parentLayout.viewTreeObserver.addOnGlobalLayoutListener(object :
             ViewTreeObserver.OnGlobalLayoutListener {
@@ -113,12 +128,11 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
                     val (width, height) = getPageDimensions()
 
                     generatePdfPages(
-                        parentLayout, headerView, bodyView, footerView,
-                        pdfConfig, pdfDocument, width, height
+                        headerView, bodyView, footerView,
+                        pdfDocument, width, height
                     )
 
-                    savePdfToFile(pdfDocument, pdfConfig, future)
-
+                    savePdfToFile(pdfDocument, pdfConfig)
                     removeViewFromWindow(parentLayout)
                 }
             }
@@ -134,39 +148,38 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
     }
 
     private fun generatePdfPages(
-        parentLayout: FrameLayout,
         headerView: ComposeView,
         bodyView: ComposeView,
         footerView: ComposeView,
-        pdfConfig: PdfConfig,
         pdfDocument: PdfDocument,
         width: Int,
         height: Int
     ) {
-        val availableHeight = height - headerView.height - footerView.height
+        val availableHeight = height - headerView.measuredHeight - footerView.measuredHeight
 
         var pageNumber = 1
-        var remainingHeight = bodyView.height
+        var totalPages =
+            Math.ceil(bodyView.measuredHeight.toDouble() / availableHeight.toDouble()).toInt()
 
-        while (remainingHeight > 0) {
+        while (totalPages > 0) {
             val pageInfo = PdfDocument.PageInfo.Builder(width, height, pageNumber).create()
             val page = pdfDocument.startPage(pageInfo)
             val canvas = page.canvas
 
             // Ensure header has non-zero dimensions before drawing
-            if (headerView.width > 0 && headerView.height > 0) {
+            if (headerView.measuredWidth > 0 && headerView.measuredHeight > 0) {
                 val headerBitmap = headerView.drawToBitmap()
                 canvas.drawBitmap(headerBitmap, 0f, 0f, null)
             }
 
             // Ensure footer has non-zero dimensions before drawing
-            if (footerView.width > 0 && footerView.height > 0) {
+            if (footerView.measuredHeight > 0 && footerView.measuredHeight > 0) {
                 val footerBitmap = footerView.drawToBitmap()
                 canvas.drawBitmap(footerBitmap, 0f, (height - footerView.height).toFloat(), null)
             }
 
             // Ensure body has non-zero dimensions before drawing
-            if (bodyView.width > 0 && bodyView.height > 0) {
+            if (bodyView.measuredWidth > 0 && bodyView.measuredHeight > 0) {
                 val bodyBitmap = bodyView.drawToBitmap()
                 val srcRect =
                     Rect(
@@ -176,27 +189,27 @@ class GeneratePdfLibrary(private val context: Context, private val config: Confi
                         pageNumber * availableHeight
                     )
                 val destRect =
-                    Rect(0, headerView.height, width, headerView.height + availableHeight)
+                    Rect(
+                        0,
+                        headerView.measuredHeight,
+                        width,
+                        headerView.measuredHeight + availableHeight
+                    )
                 canvas.drawBitmap(bodyBitmap, srcRect, destRect, null)
             }
 
             pdfDocument.finishPage(page)
             pageNumber++
-            remainingHeight -= availableHeight
+            totalPages -= 1
         }
     }
 
-    private fun savePdfToFile(
-        pdfDocument: PdfDocument,
-        pdfConfig: PdfConfig,
-        future: CompletableFuture<String>
-    ) {
+    private fun savePdfToFile(pdfDocument: PdfDocument, pdfConfig: PdfConfig) {
         val stream = ByteArrayOutputStream()
         pdfDocument.writeTo(stream)
         pdfDocument.close()
 
-        val file = saveToCacheDirectory(pdfConfig.name, stream)
-        future.complete(file.absolutePath)
+        saveToCacheDirectory(pdfConfig.name, stream)
     }
 
     private fun saveToCacheDirectory(fileName: String, stream: ByteArrayOutputStream): File {
