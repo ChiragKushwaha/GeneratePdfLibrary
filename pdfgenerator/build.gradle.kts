@@ -64,7 +64,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
 
-                groupId = "com.github.ck"
+                groupId = "com.github.ChiragKushwaha"
                 artifactId = "pdfgenerator"
                 version = "0.1.0"
             }
