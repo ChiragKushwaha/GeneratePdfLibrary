@@ -20,17 +20,42 @@ PDF.
 
 ## Usage
 
-### Initialization
+### Step 1: Add the Library Dependency
 
-Create an instance of `GeneratePdfLibrary` using the `getInstance` method.
+Add the library dependency to your `build.gradle` file. The library is hosted on GitHub, so you can
+add it using JitPack.
+
+```groovy
+// Add JitPack repository in your root build.gradle file
+allprojects {
+    repositories {
+        ...
+        maven { url 'https://jitpack.io' }
+    }
+}
+
+// Add the dependency in your app-level build.gradle file
+dependencies {
+    implementation 'com.github.ChiragKushwaha:GeneratePdfLibrary:main-SNAPSHOT'
+}
+```
+
+### Step 2: Sync the Project
+
+Sync your project with Gradle files to ensure the dependency is downloaded and included in your
+project.
+
+### Step 3: Initialize the Library
+
+Create an instance of GeneratePdfLibrary in your activity or fragment.
 
 ```kotlin
 val pdfLibrary = GeneratePdfLibrary.getInstance(context)
 ```
 
-PDF Generation
-Call the generatePdf method with a PdfConfig object that defines the header, body, and footer
-composables.
+### Step 4: Define PDF Content
+
+Create a PdfConfig object that defines the header, body, and footer composables.
 
 ```kotlin
 val pdfConfig = PdfConfig(
@@ -39,24 +64,19 @@ val pdfConfig = PdfConfig(
     body = { BodyComposable() },
     footer = { FooterComposable() }
 )
+```
 
+### Step 5: Generate the PDF
+
+Call the generatePdf method with the PdfConfig object.
+
+```kotlin
 pdfLibrary.generatePdf(pdfConfig)
 ```
 
-Customization
-Customize the page size and orientation through the Config object.
+## Example
 
-```kotlin
-val customConfig = Config(
-    pageSize = PageSize.A4,
-    pageOrientation = PageOrientation.LANDSCAPE
-)
-
-val pdfLibrary = GeneratePdfLibrary.getInstance(context, customConfig)
-```
-
-Example
-Here is a complete example of how to use the GeneratePdfLibrary:
+Here is a complete example of how to use the GeneratePdfLibrary in an Android application:
 
 ```kotlin
 import android.os.Bundle
@@ -120,3 +140,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 ```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
