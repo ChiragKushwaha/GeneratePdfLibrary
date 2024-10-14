@@ -58,12 +58,11 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            afterEvaluate {
                 from(components["release"])
-
                 groupId = "com.github.ChiragKushwaha"
                 artifactId = "pdfgenerator"
                 version = "0.1.0"
