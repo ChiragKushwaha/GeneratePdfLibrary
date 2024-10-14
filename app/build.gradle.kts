@@ -50,7 +50,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":pdfgenerator"))
+    implementation("com.github.ChiragKushwaha:GeneratePdfLibrary:0.1.2")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

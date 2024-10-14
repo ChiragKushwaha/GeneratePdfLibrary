@@ -1,4 +1,4 @@
-# GeneratePdfLibrary
+# GeneratePdfLibrary [![](https://jitpack.io/v/ChiragKushwaha/GeneratePdfLibrary.svg)](https://jitpack.io/#ChiragKushwaha/GeneratePdfLibrary)
 
 The `GeneratePdfLibrary` is a Kotlin-based library designed to generate PDF documents from Compose
 UI components in an Android application. It provides a streamlined way to convert UI elements into a
@@ -22,21 +22,22 @@ PDF.
 
 ### Step 1: Add the Library Dependency
 
-Add the library dependency to your `build.gradle` file. The library is hosted on GitHub, so you can
-add it using JitPack.
+Add the library dependency to your `build.gradle.kts` file. The library is hosted on GitHub, so you
+can add it using JitPack.
 
-```groovy
-// Add JitPack repository in your root build.gradle file
-allprojects {
+```kotlin
+// Add JitPack repository in your settings.gradle.kts file
+dependencyResolutionManagement {
     repositories {
-        ...
-        maven { url 'https://jitpack.io' }
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
-// Add the dependency in your app-level build.gradle file
+// Add the dependency in your app-level build.gradle.kts file
 dependencies {
-    implementation 'com.github.ChiragKushwaha:GeneratePdfLibrary:main-SNAPSHOT'
+    implementation("com.github.ChiragKushwaha:GeneratePdfLibrary:0.1.2")
 }
 ```
 
